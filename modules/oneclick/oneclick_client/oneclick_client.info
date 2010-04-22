@@ -1,0 +1,5 @@
+; $Id$
+name = "One Click Client"
+description = "Support for oneclick module"
+core = 6.x
+package = One Click

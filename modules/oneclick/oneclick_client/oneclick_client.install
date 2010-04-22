@@ -1,0 +1,9 @@
+<?php
+
+function oneclick_client_install() {
+  //variable_set();
+}
+
+function oneclick_client_uninstall() {
+  return;
+}

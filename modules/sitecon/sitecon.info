@@ -1,0 +1,5 @@
+; $Id: $
+name = Site Connect
+description = Site connect base to auto register/login.
+package = Site Connect
+core = 6.x

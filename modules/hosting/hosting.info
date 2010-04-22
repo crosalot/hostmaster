@@ -1,0 +1,20 @@
+name = Hosting
+description = Allow this Drupal site to deploy hosted sites.
+package = Hosting
+dependencies[] = modalframe
+#dependencies[] = hosting_task
+#dependencies[] = hosting_client
+#dependencies[] = hosting_db_server
+#dependencies[] = hosting_package
+#dependencies[] = hosting_platform
+#dependencies[] = hosting_site
+#dependencies[] = hosting_web_server
+
+core = 6.x
+
+; Information added by drupal.org packaging script on 2009-11-17
+version = "6.x-0.4-alpha3"
+core = "6.x"
+project = "hosting"
+datestamp = "1258489007"
+

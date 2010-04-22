@@ -1,0 +1,6 @@
+; $Id: $
+name = Server Site Connect
+description = Server site connect support for request from client.
+package = Site Connect
+core = 6.x
+dependencies[] = sitecon

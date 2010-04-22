@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * Implementation of hook_schema.
+ */
+function sitecon_client_schema() {
+  $schema['sitecon_client'] = array(
+    'description' => 'For storing configured sitecon client',
+    'fields' => array(
+      'id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'privatekey' => array('type' => 'varchar', 'length' => '255', 'default' => '', 'not null' => TRUE),
+      'domain' => array('type' => 'varchar', 'length' => '255', 'default' => '', 'not null' => TRUE),
+      'apikey' => array('type' => 'varchar', 'length' => '255', 'default' => '', 'not null' => TRUE),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array('privatekey' => array('privatekey'), 'domain' => array('domain')),
+  );
+  $schema['sitecon_client_session'] = array(
+    'description' => 'For spacify session for one connected',
+    'fields' => array(
+      'sid' => array('type' => 'varchar', 'length' => '255', 'default' => '', 'not null' => TRUE),
+    ),
+    'primary key' => array('sid'),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install.
+ */
+function sitecon_client_install() {
+  drupal_install_schema('sitecon_client');
+}
+
+/**
+ * Implementation of hook_uninstall.
+ */
+function sitecon_client_uninstall() {
+  drupal_uninstall_schema('sitecon_client');
+}

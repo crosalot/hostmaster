@@ -1,0 +1,12 @@
+name = Site aliases
+description = Maintain domain aliases for sites.
+package = Hosting
+dependencies[] = hosting_site
+
+core = 6.x
+; Information added by drupal.org packaging script on 2009-11-17
+version = "6.x-0.4-alpha3"
+core = "6.x"
+project = "hosting"
+datestamp = "1258489007"
+

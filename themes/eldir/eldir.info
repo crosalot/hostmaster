@@ -1,0 +1,18 @@
+; $Id: eldir.info,v 1.1 2009/05/27 18:00:34 adrian Exp $
+name = Eldir
+description = Companion theme for the Aegir hosting system.
+version = VERSION
+core = 6.x
+engine = phptemplate
+stylesheets[all][] = style.css
+regions[left] = Left sidebar
+regions[right] = Right sidebar
+regions[content] = Content
+regions[header] = Header
+
+; Information added by drupal.org packaging script on 2009-11-17
+version = "6.x-0.4-alpha3"
+core = "6.x"
+project = "eldir"
+datestamp = "1258488964"
+

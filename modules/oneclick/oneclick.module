@@ -1,0 +1,503 @@
+<?php
+
+/**
+ * Implementation of hook_menu() 
+ */
+function oneclick_init() {
+  if ($_GET['q'] != 'user/verify' && 
+      $_GET['q'] != 'logout' && 
+      arg(0) != 'user' && 
+      arg(1) != 'validate' && 
+      user_is_logged_in() && 
+      !_user_is_verified()) {
+
+    drupal_goto('user/verify');
+  }
+}
+/**
+ * Implementation of hook_menu() 
+ */
+function oneclick_menu() {
+  $items['user/add/site'] = array(
+    'title' => 'CREATE YOUR SITE',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oneclick_add_site_form'),
+    'access arguments' => array('access content'),
+  );
+
+  // @see oneclick_form_alter()
+  // $items['user/register'] = array();
+  // $items['user/login'] = array();
+
+  $items['user/verify'] = array(
+    'title' => 'VERIFY YOUR EMAIL ADDRESS',
+    'page callback' => 'oneclick_verify',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['waiting'] = array(
+    'page callback' => 'oneclick_is_waiting',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['waiting/%'] = array(
+    'title' => 'WAITING',
+    'page callback' => 'oneclick_waiting',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['oneclick/site/%/success'] = array(
+    'page callback' => 'oneclick_site_is_success',
+    'page arguments' => array(2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['get_user_from_client/%'] = array(
+    'page callback' => 'oneclick_get_user_from_client',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['create_sitecon/%'] = array(
+    'page callback' => 'oneclick_create_sitecon_client',
+    'page arguments' => array(1), 
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+function oneclick_site_is_success($task_id) {
+  //$task_id = db_result(db_query("SELECT nid FROM {hosting_task} WHERE rid = %d", $site_id));
+  $node = node_load($task_id);
+  $class = hosting_task_status_class($node->task_status);
+
+  //$result = db_result(db_query("SELECT count(*) FROM {hosting_task_log} WHERE vid=%d", $node->vid));
+
+  switch ($class) {
+    case 'hosting-queue':
+      $per = 35;
+      break;
+    case 'hosting-processing':
+      $per = 75;
+      break;
+    case 'hosting-success':
+      $per = 100;
+      break;
+    default:
+      $per = 0;
+  }
+
+
+  echo drupal_json(array(
+    'status' => 1,
+    'message' => ucfirst(substr($class, 8)),
+    'percentage' => $per, 
+  ));
+  exit();
+
+}
+
+function oneclick_is_waiting() {
+  if (module_exists('oneclick_client')) {
+    oneclick_client_is_waiting();
+  }
+  else {
+    print $_GET['callback'].'('.json_encode(array('waiting' => TRUE)).')';
+  }
+}
+
+function oneclick_add_site_form() {
+  drupal_add_css(drupal_get_path('module', 'oneclick').'/oneclick.css');
+  drupal_add_js(drupal_get_path('module', 'oneclick').'/oneclick.main.js');
+  $form['address'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Domain'), 
+    '#suffix' => '<span class="suffix-domain">.'.variable_get('site_name', '').'</span>',
+    '#maxlength' => 50,
+  );
+  $form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Website Name'), 
+    '#maxlength' => 50,
+  );
+  $form['category'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Category'), 
+    '#maxlength' => 50,
+  );
+  $form['agree'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('I agree to the').' '.l(t('terms of use'), 'term-of-use'), 
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Next'),
+  );
+  
+  return $form;
+}
+
+function oneclick_add_site_form_validate($form, &$form_state) {
+  oneclick_address_validate($form_state['values']['address'], TRUE);
+}
+
+function oneclick_address_validate($address, $is_form=FALSE) {
+  if (empty($address)) {
+    $errors[] = t('Your address must be contain any word.');
+  }
+  if (drupal_strlen($address) > 50) {
+    $errors[] = t('Your address length muse be less than 50 character.');
+  }
+
+  // Same aegir validate
+  if (!_hosting_valid_fqdn($address)) {
+    $errors[] = t('You have not specified a valid address.');
+  }
+  if (!hosting_domain_allowed($address)) {
+    $errors[] = t("The domain name you have specified is already in use.");
+  }
+
+  if (!isset($errors)) {
+    return TRUE;
+  }
+
+  foreach ($errors as $error) {
+    if ($is_form) {
+      form_set_error('address', $error);
+    }
+    else {
+      drupal_set_message($error, 'error');  
+    }
+  }
+
+  return FALSE;
+}
+
+function oneclick_add_site_form_submit($form, &$form_state) { 
+  $address = $form_state['values']['address'];
+  if (user_is_logged_in()) {
+    oneclick_build_site($address.'.'.variable_get('site_name', 'localhost'));
+  }
+  else {
+    drupal_goto('user/register', 'address='.$address);
+  }
+}
+
+function oneclick_verify() {
+  if (!user_is_logged_in()) {
+    drupal_access_denied();
+  }
+  global $user;
+  // TODO: Make next line to template.
+  $webmail = explode('@', $user->mail);
+  $webmail = $webmail[1];
+  $output .= '<div class="detail">'.t('We now need to verify your email address. We\'ve sent an email to %email. Please click the link in that email to continue.', array('%email' => $user->mail)).'</div>';
+  if ($webmail) {
+    $output .= '<div class="email-linke">'.l(t('Go to %webmail', array('%webmail' => $webmail)), 'http://'.$webmail, array('html' => TRUE)).'</div>';
+  }
+  return $output;
+}
+
+function oneclick_waiting($site_id) {
+  $site = node_load($site_id);
+  $task_id = db_result(db_query("SELECT nid FROM {hosting_task} WHERE rid = %d", $site_id));
+
+  drupal_add_js('misc/progress.js', 'core');
+
+  drupal_add_js(array('oneclick' => array(
+    'domain' => $site->title, 
+    'site_id' => $site->nid, 
+    'task_id' => $task_id,
+    'root_site' => variable_get('site_name', 'localhost'),
+    'uri' => '/oneclick/site/'.$task_id.'/success',
+  )), 'setting');
+
+  drupal_add_js(drupal_get_path('module', 'oneclick').'/oneclick.js');
+
+  return '<div id="oneclick-progress"></div>';
+}
+
+function oneclick_waiting_form() {
+  $form['waiting'] = array(
+    '#type' => 'value',
+    '#value' => 'Submit',
+    '#ahah' => array(
+      'path' => 'mymodule/js',
+      'wrapper' => 'myform-wrapper',
+      'method' => 'replace',
+      'effect' => 'fade',
+      'progress' => array(
+        'type' => 'bar',
+        'message' => t('Loading...')
+      )     
+    )
+  );
+  return $form;
+}
+
+
+/**
+ * Implementation of hook_form_alter() 
+ */
+function oneclick_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'user_register') {
+    unset($form['user_registration_help']);
+  }
+}
+/**
+ * Implementation of hook_user_after_validated()
+ */
+function oneclick_user_after_validated($account) {
+  // Build client with account
+  oneclick_build_client($account);
+
+  $data = _user_get_data($account);
+  $address = $data['address'];
+  if (empty($address) || !oneclick_address_validate($address)) {
+    return;
+  }
+  
+  // Remove initial user site
+  user_save($account, array('address' => NULL));
+
+  // Build site with address
+  oneclick_build_site($address, $account);
+
+}
+
+function oneclick_build_client($account) {
+  $client = hosting_get_client_from_user($account->uid);
+  if (!empty($client)) {
+    return;
+  }
+
+  $admin = user_load(array('uid' => 1));
+
+  $node->uid = $admin->uid;
+  $node->new_user = $admin->name;
+
+  $node->type = 'client';
+  $node->status = 1;
+  $node->email = $account->mail;
+  $node->client_name = $account->name;
+
+  // TODO: Implement with user register, add organization to the register form
+  // $data = _user_get_data($account);
+  // $node->organization = $data->organization;
+
+  node_save($node);
+  $node->new_user = $account->name;
+  node_save($node);
+  watchdog('oneclick', 'build client id: '.$node->nid);
+}
+
+function oneclick_build_site($address, $user=NULL) {
+  // TODO: Wait for drupal installation.
+
+  // Work in progress from crosalot
+  if (empty($user)) {
+    global $user;
+  }
+
+  // Define client for site
+  $client_ids = array_reverse(hosting_get_client_from_user($user->uid), TRUE);
+  $client_id  = key($client_ids);
+  $client_id = $client_id? $client_id: HOSTING_DEFAULT_CLIENT;
+  $client = node_load($client_id);
+  watchdog('oneclick', 'add site to client id '.$client->nid);
+  
+  // Define platform
+  $platform = HOSTING_DEFAULT_PLATFORM;
+
+  // Define port
+  $showports = _hosting_site_allowed_ports($platform);
+  $port = reset($showports);
+
+  // Define profile
+  $profiles = hosting_get_profiles($platform);
+  $profile = oneclick_get_default_profile($profiles);
+
+  // Define db_server
+  $db_servers = _hosting_get_db_servers();
+  $db_server = key($db_servers);
+
+  // Map detailt to node
+  $node->type = 'site';
+  $node->title = $address;
+  $node->status = 1;
+  $node->uid = $user->uid;
+
+  $node->client = $client->title;
+  $node->platform = $platform;
+  $node->port = $port;
+  $node->profile = $profile;
+  $node->site_language = 'en';
+  $node->db_server = $db_server;
+  
+  node_save($node);
+  watchdog('oneclick', 'goto: waiting/'.$node->nid);
+  oneclick_goto('waiting/'.$node->nid);
+}
+
+function oneclick_get_default_profile($profiles) {
+  $pid = array_search(variable_get('oneclick_default_profile', 'openweb'), $profiles);
+  if ($pid !== FALSE) {
+    return $pid;
+  }
+  return key($profiles);
+}
+
+/**
+ * Implement of hook_sitecon_client_allow_con()
+ */
+function oneclick_sitecon_client_allow_con($server) {
+  if (!module_exists('hosting_client') || !module_exists('hosting_client')) {
+    return TRUE;
+  }
+  global $user;
+  $rs = db_query("SELECT n.title FROM {hosting_client_user} hcu, {hosting_site} hs, {node} n WHERE hcu.client = hs.client AND hs.nid = n.nid AND hcu.user = %d", $user->uid);
+  $allow_domains = array();
+  while($domain = db_fetch_object($rs)) {
+    $allow_domains[] = $domain->title;
+  }
+  if(in_array($server->domain, $allow_domains)) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+function oneclick_get_user_from_client($domain) {
+  $user = db_query("SELECT u.name, u.mail, u.pass, u.data FROM {users} u, {node} n, {hosting_client_user} hcu, {hosting_site} hs WHERE hcu.user = u.uid AND hcu.client = hs.client AND hs.nid = n.nid AND u.uid <> 1 AND n.title = '%s'", array($domain));
+  $user = db_fetch_object($user);
+  $user->data = unserialize($user->data);
+  if ($_GET['format'] == 'json') {
+    if ($_GET['callback']) {
+      print $_GET['callback'].'('.json_encode($user).')';
+    }
+    else {
+      print json_encode($user);
+    }
+    exit();
+  }
+  return $user;
+}
+
+function oneclick_block($op = 'list', $delta = 0, $edit = array()) {
+  if ($op == 'list') {
+    $blocks[0] = array(
+      'info' => t('Oneclick add site'),
+      'weight' => 0, 
+      'status' => 1, 
+      'region' => 'right'
+    );
+    return $blocks;
+  }
+  else if ($op == 'view') {
+    switch($delta) {
+      case 0:
+        $block = array(
+          'subject' => t('Create your site'),
+          'content' => drupal_get_form('oneclick_add_site_form'),
+        );
+        break;
+    }
+    return $block;
+  }
+
+}
+
+function oneclick_goto($url) {
+  if (substr($url, 0, 7) != 'http://') {
+    if (substr($url, 0, 1) != '/') {
+      $url = '/'.$url;
+    }
+  }
+  print '<html><head><title>redirect</title><meta http-equiv="refresh" content="0;url='.$url.'" /></head><body></body></html>';
+  exit();
+}
+
+function oneclick_create_sitecon_client($id) {
+  if (is_numeric($id)) {
+    $site = sitecon_get_item($id, 'client');
+  }
+  else {
+    $site = sitecon_get_item_from_domain($id, 'client');
+  }
+
+  if ($site){
+    if ($_GET['return'] != 'true') {
+      drupal_json(array('success' => TRUE));
+    }
+    if (isset($_GET['next'])) {
+      drupal_goto($_GET['next']);
+    }
+  }
+  else {
+    if (is_numeric($id)) {
+      $site = node_load($id);
+      $domain = $site->title;
+      $id = $site->nid;
+    }
+    else {
+      $domain = $id;
+      $id = 'NULL';
+    }
+
+    _create_sitecon($domain, $id);
+
+    if ($_GET['return'] != 'true') {
+      drupal_json(array('success' => TRUE));
+    }
+    if (isset($_GET['next'])) {
+      drupal_goto($_GET['next']);
+    }
+  }
+}
+
+function _create_sitecon($domain, $id = 'NULL') {
+  $privatekey = rand(0, 9999999999);
+  $apikey = _get_sitecon_apikey($domain, $privatekey);
+  $sitecon = array(
+    'id' => $id,
+    'type' => 'client',
+    'privatekey' => $privatekey,
+    'domain' => $domain,
+    'apikey' => $apikey,
+    'op' => 'create',
+  );
+  _add_sitecon($sitecon);
+}
+
+function _add_sitecon($sitecon) {
+  $type = $sitecon['type'];
+  db_query("INSERT INTO sitecon_$type VALUES(%d, '%s', '%s', '%s') ON DUPLICATE KEY UPDATE apikey = '%s', privatekey = '%s'", array($sitecon['id'], md5($sitecon['privatekey']), $sitecon['domain'], $sitecon['apikey'], $sitecon['apikey'], md5($sitecon['privatekey'])));
+}
+
+function _get_sitecon_apikey($server_name, $privatekey) {
+  $url = 'http://'.$server_name.'/sitecon/server/get_apikey/'.variable_get('site_name', 'localhost').'/'.md5($privatekey);
+  $resp = drupal_http_request($url);
+  if ($resp->code == 200) {
+    return json_decode($resp->data);
+  }
+  return NULL;
+}
+
+
+function _user_is_verified($user = NULL) {
+  $data = _user_get_data($user);
+  return !isset($data['verified']) || $data['verified'];
+}
+
+function _user_get_data($user = NULL) {
+  if (!$user) {
+    global $user;
+  }
+  return unserialize($user->data);
+}

@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * Implementation of hook_schema.
+ */
+function sitecon_server_schema() {
+  $schema['sitecon_server'] = array(
+    'description' => 'For storing configured sitecon server',
+    'fields' => array(
+      'id' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'privatekey' => array('type' => 'varchar', 'length' => '166', 'default' => '', 'not null' => FALSE),
+      'domain' => array('type' => 'varchar', 'length' => '166', 'default' => '', 'not null' => FALSE),
+      'apikey' => array('type' => 'varchar', 'length' => '255', 'default' => '', 'not null' => TRUE),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array('privatekey_domain' => array('privatekey', 'domain')),
+  );
+  $schema['sitecon_server_users'] = array(
+    'description' => 'For mapping client and server user',
+    'fields' => array(
+      'cid' => array('type' => 'int', 'length' => '11', 'unsigned' => TRUE, 'not null' => TRUE),
+      'cuid' => array('type' => 'int', 'length' => '11', 'unsigned' => TRUE, 'not null' => TRUE),
+      'uid' => array('type' => 'int', 'length' => '11', 'unsigned' => TRUE, 'not null' => TRUE),
+    ),
+    'primary key' => array('cid, cuid'),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install.
+ */
+function sitecon_server_install() {
+  drupal_install_schema('sitecon_server');
+}
+
+/**
+ * Implementation of hook_uninstall.
+ */
+function sitecon_server_uninstall() {
+  drupal_uninstall_schema('sitecon_server');
+}

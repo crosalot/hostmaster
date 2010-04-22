@@ -1,0 +1,171 @@
+<?php
+
+/**
+ * Implementation of hook_menu().
+ */
+function sitecon_client_menu() {
+  $items['admin/settings/sitecon/client'] = array(
+    'title' => 'Server List',
+    'description' => 'List of servers to this site use service.',
+    'page callback' => 'sitecon_list',
+    'page arguments' => array('client'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/settings/sitecon/client/add'] = array(
+    'title' => 'Add server',
+    'description' => 'Add server key and domain.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_form', NULL, 'client'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/settings/sitecon/client/%/edit'] = array(
+    'title' => 'Update server',
+    'description' => 'Update server key and domain.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_form', 4, 'client'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/settings/sitecon/client/%/delete'] = array(
+    'title' => 'Delete server',
+    'description' => 'Delete client.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_delete_form', 4, 'client'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['sitecon/client/connect/%/%'] = array(
+    'page callback' => 'sitecon_client_connect',
+    'page arguments' => array(3, 4),
+    'access arguments' => array('access content'),
+  );
+  $items['sitecon/client/confirm'] = array(
+    'page callback' => 'sitecon_client_confirm',
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+
+function sitecon_client_get_session($sid) {
+  return db_result(db_query("SELECT sid FROM sitecon_client_session WHERE sid = '%s'", $sid));
+}
+
+function sitecon_client_add_session($sid) {
+  db_query("INSERT INTO sitecon_client_session VALUES('%s') ON DUPLICATE KEY UPDATE sid = '%s'", $sid, $sid);
+}
+
+function sitecon_client_delete_session($sid) {
+  db_query("DELETE FROM sitecon_client_session WHERE sid = '%s'", $sid);
+}
+
+function sitecon_client_connect($id, $status, $account = NULL) {
+  $_GET = array_merge($_GET, $_POST);
+  global $user;
+  
+  // User can't access if not logged in.
+  if ($user->uid) {
+    // $id param are domain name or domain id
+    $server = is_numeric($id)? sitecon_get_item($id, 'client'): sitecon_get_item_from_domain($id, 'client');
+    
+    if (!$server) {
+      drupal_not_found();
+    }
+
+    // implement hook
+    $allow = TRUE;
+    foreach (module_implements('sitecon_client_allow_con') as $name) {
+      $function = $name .'_sitecon_client_allow_con';
+      $allow = $allow && $function($server);
+    }   
+    if ($allow) {
+    
+      $data->sid = $user->sid? $user->sid: session_id();
+      $data->mail = $user->mail;
+      $data->uid = $user->uid;
+      if ($_GET['use_name'] == 'true') {
+        $data->name = $user->name;
+      }
+      
+      if ($status == 'after_update') {
+        $data->name = $account->name;
+        $data->language = $account>language;
+        $data->pass = $account->truepass;
+      }
+
+      // One time connect for security @see sitecon_client_confirm
+      sitecon_client_add_session($data->sid);
+      
+      // Request with iframe because iframe similar that user go to the server page and server can auto login for this user
+      //$output .= '<iframe src ="http://'.$server->domain.'/sitecon/server/connect?status='.$status.'&id='.$server->id.'&apikey='.$server->apikey.'&code='.sitecon_encode($server->privatekey, $data).'" width="900" height="400" style="display: block;">';
+      $query = drupal_query_string_encode(array(
+        'status' => $status,
+        'id' => $server->id,
+        'apikey' => $server->apikey,
+        'code' => sitecon_encode($server->privatekey, $data),
+      ));
+      $output .= '<iframe src ="http://'.$server->domain.'/sitecon/server/connect?'.$query.'" width="0" height="0" style="display: none;">';
+      $output .=   '<p>Your browser does not support iframes.</p>';
+      $output .= '</iframe>';
+    }
+    
+    if (isset($_GET['redirect'])) {
+      $output = '<html><head><title>redirect</title><meta http-equiv="refresh" content="0;url='.$_GET['redirect'].'" /></head><body>'.$output.'</body></html>';
+    }
+    if ($_GET['format'] == 'json') {
+      drupal_json($output);
+    }
+    else {
+      print $output;
+    }
+  }
+}
+
+function sitecon_client_confirm() {
+  $_GET = array_merge($_GET, $_POST);
+  $server = sitecon_get_item($_GET['id'], 'client');
+  $data = sitecon_decode($server->privatekey, $_GET['code']);
+  $status = $_GET['status'];
+  
+  // One time connect for security
+  if (sitecon_client_get_session($data->sid)) {
+    sitecon_client_delete_session($sid);
+    $account = db_fetch_object(db_query("SELECT u.* FROM sessions s, users u WHERE s.uid = u.uid AND s.sid = '%s'", $data->sid));
+    
+    if ($account) {
+      unset($account->session);
+      if ($status == 'after_update') {
+        $account->pass = $data->pass;
+      }
+      print sitecon_encode($server->privatekey, $account);
+    }
+    else {
+      if ($_GET['status'] != 'login') {
+        print sitecon_encode($server->privatekey, $data);
+      }
+      else {
+        print sitecon_encode($server->privatekey, FALSE);
+      }
+    }
+  }
+  else {
+    print sitecon_encode($server->privatekey, FALSE);
+  }
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function sitecon_client_user($op, &$edit, &$account) {
+  $redirect = '';
+  if (user_access('site connection')) {
+    if ($op == 'login' || $op == 'after_update') {
+      $rs = db_query("SELECT id FROM {sitecon_client}");
+      $redirect = $op == 'after_update'? 'user': $redirect;
+      print '<html><head><title>redirect</title><meta http-equiv="refresh" content="0;url=/'.$redirect.'" /></head><body>';
+      $account->mail = $edit['mail'];
+      $account->truepass = $edit['pass'];
+      while ($server = db_fetch_object($rs)) {
+        sitecon_client_connect($server->id, $op, $account);
+      }
+      print '</body></html>';
+    }
+  }
+}

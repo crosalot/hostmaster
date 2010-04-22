@@ -1,0 +1,5 @@
+; $Id$
+name = "One Click"
+description = "User can register and build easy sites, domain name"
+core = 6.x
+package = One Click

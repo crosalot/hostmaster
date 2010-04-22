@@ -1,0 +1,233 @@
+<?php
+
+/**
+ * Implementation of hook_perm().
+ */
+function sitecon_perm() {
+  return array('site connection');
+}
+/**
+ * Implementation of hook_menu().
+ */
+function sitecon_menu() {
+  $items['admin/settings/sitecon'] = array(
+    'title' => 'Sites Connections',
+    'description' => 'Sites connections many to many sites.',
+    'page callback' => 'sitecon',
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+function sitecon() {
+  return 'Sites connections many to many sites. You can install server or client module for support sites connections module';
+}
+
+function sitecon_encode($key, $data) {
+  $data = serialize($data);
+  $key = sha1($key);
+  $str_len = strlen($data);
+  $key_len = strlen($key);
+  $j = 0;
+  for ($i = 0; $i < $str_len; $i++) {
+    $ord_str = ord(substr($data, $i, 1));
+    if ($j == $key_len) { $j = 0; }
+    $ord_key = ord(substr($key, $j, 1));
+    $j++;
+    $hash .= strrev(base_convert(dechex($ord_str + $ord_key), 16, 36));
+  }
+  return $hash;
+}
+
+function sitecon_decode($key, $data) {
+  $key = sha1($key);
+  $str_len = strlen($data);
+  $key_len = strlen($key);
+  $j = 0;
+  for ($i = 0; $i < $str_len; $i+=2) {
+    $ord_str = hexdec(base_convert(strrev(substr($data, $i, 2)), 36, 16));
+    if ($j == $key_len) { $j = 0; }
+    $ord_key = ord(substr($key, $j, 1));
+    $j++;
+    $hash .= chr($ord_str - $ord_key);
+  }
+  $hash = unserialize($hash);
+  return $hash;
+}
+
+function sitecon_autoregister($user) {
+  if ($user->pass) {
+    if($account = db_fetch_object(db_query("SELECT * FROM users WHERE LOWER(name) = LOWER('%s')", $user->name))) {
+      return $account;
+    }
+  }
+  // Case email already registered
+  if ($account = db_fetch_object(db_query("SELECT * FROM users WHERE LOWER(mail) = LOWER('%s')", $user->mail))) {
+    return $account;
+  }
+  if ($account = db_fetch_object(db_query("SELECT * FROM users WHERE LOWER(name) = LOWER('%s')", $user->mail))) {
+    return;
+  }
+  
+  $pass = ($user->pass? $user->pass: user_password());
+  $account = array(
+    'name' => $user->name? $user->name: $user->mail,
+    'mail' => $user->mail,
+    'timezone' => ($user->timezone? $user->timezone: variable_get('date_default_timezone', NULL)), 
+    'pass' => $pass, 
+    'init' => $user->mail, 
+    'roles' => array(),
+    'status' => 1 
+  );
+  $account = user_save('', $account);
+  // Update password directly because user_save convert password to md5 normaly.
+  db_query("UPDATE users SET pass = '%s' WHERE uid = %d", md5($pass), $account->uid);
+  _user_mail_notify('register_no_approval_required', $account);
+  
+  return $account;
+}
+
+function sitecon_autologin($account) {
+  global $user;
+  if (!$account || drupal_is_denied('mail', $account->mail) || $user->uid) { return; }
+  $user = $account;
+  $user->login = time();
+  
+  // Log
+  watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
+  db_query("UPDATE {users} SET login = %d WHERE uid = %d", $user->login, $user->uid);
+  return $user;
+}
+
+function sitecon_autologout() {
+  global $user;
+  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+
+  // Destroy the current session:
+  session_destroy();
+  // Only variables can be passed by reference workaround.
+  $null = NULL;
+  user_module_invoke('logout', $null, $user);
+
+  // Load the anonymous user
+  $user = drupal_anonymous_user();
+}
+
+// Settings form for server and client extends ====================================
+
+function sitecon_list($type) {
+  $rs = db_query("SELECT * FROM sitecon_$type");
+  $items = array();
+  while ($item = db_fetch_object($rs)) {
+    $items[] = array(l($item->domain, 'admin/settings/sitecon/'.$type.'/'.$item->id.'/edit'), $item->apikey);
+  }
+  return '<h4>'.l('Add Item', 'admin/settings/sitecon/'.$type.'/add').'</h4>'.theme('table', array('Domain', 'API Key'), $items);
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function sitecon_form($form_state, $id = 0, $type) {
+  $item = sitecon_get_item($id, $type);
+  $form['type'] = array(
+    '#type' => 'hidden',
+    '#value' => $type,
+  );
+  $form['privatekey'] = array(
+    '#type' => 'password',
+    '#title' => t('Private Key'),
+  );
+  $form['domain'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Domain'),
+    '#default_value' => $item->domain,
+  );
+  $form['apikey'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API Key'),
+    '#default_value' => $item->apikey,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t($id? 'update': 'create'),
+  );
+  if ($id) {
+    $form['delete'] = array(
+      '#type' => 'submit',
+      '#value' => t('delete'),
+    );
+    $form['id'] = array(
+      '#type' => 'hidden',
+      '#value' => $id
+    );
+  }
+  return $form;
+}
+
+/**
+ * Implementation of hook_submit().
+ */
+function sitecon_form_submit($form, &$form_state) {
+  $type = $form_state['values']['type'];
+  switch ($form_state['values']['op']) {
+    case 'create':
+      db_query("INSERT INTO sitecon_$type VALUES(NULL, '%s', '%s', '%s')", md5($form_state['values']['privatekey']), $form_state['values']['domain'], $form_state['values']['apikey']);
+      break;
+    case 'update':
+      if ($form_state['values']['privatekey']) {
+        db_query("UPDATE sitecon_$type SET domain = '%s', apikey = '%s' WHERE id = %d", $form_state['values']['domain'], $form_state['values']['apikey'], $form_state['values']['id']);
+      }
+      else {
+        db_query("UPDATE sitecon_$type SET privatekey = '%s', domain = '%s', apikey = '%s' WHERE id = %d", md5($form_state['values']['privatekey']), $form_state['values']['domain'], $form_state['values']['apikey'], $form_state['values']['id']);
+      }
+      
+      break;
+    case 'delete':
+      drupal_goto('admin/settings/sitecon/'.$type.'/'.$form_state['values']['id'].'/delete');
+      break;
+  }
+  drupal_set_message(ucfirst($form_state['values']['op']).' completed.');
+  drupal_goto('admin/settings/sitecon/'.$type);
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function sitecon_delete_form($form_state, $id = 0, $type) {
+  $form['type'] = array(
+    '#type' => 'hidden',
+    '#value' => $type,
+  );
+  $form['delete'] = array(
+    '#type' => 'markup',
+    '#value' => '<div>Are you sure you want to delete this item?</div>',
+  );
+  $form['id'] = array(
+    '#type' => 'hidden',
+    '#value' => $id,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Confirm',
+    '#suffix' => '<input type="button" value="Cancel" onclick="history.go(-1)" />',
+  );
+  return $form;
+}
+
+function sitecon_delete_form_submit($form, &$form_state) {
+  $type = $form_state['values']['type'];
+  db_query("DELETE FROM sitecon_$type WHERE id = %d", $form_state['values']['id']);
+  drupal_goto('admin/settings/sitecon/'.$type);
+}
+
+function sitecon_get_item($id = 0, $type) {
+  return db_fetch_object(db_query("SELECT * FROM sitecon_$type WHERE id = %d", $id));
+}
+
+function sitecon_get_item_from_domain($domain, $type) {
+  return db_fetch_object(db_query("SELECT * FROM sitecon_$type WHERE domain = '%s'", $domain));
+}
+
+function sitecon_get_item_from_apikey($apikey, $type) {
+  return db_fetch_object(db_query("SELECT * FROM sitecon_$type WHERE apikey = '%s'", $apikey));
+}

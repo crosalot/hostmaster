@@ -1,0 +1,195 @@
+<?php
+
+/**
+ * Implementation of hook_menu().
+ */
+function sitecon_server_menu() {
+  $items['admin/settings/sitecon/server'] = array(
+    'title' => 'Crient List',
+    'description' => 'List of clients to use server site service.',
+    'page callback' => 'sitecon_list',
+    'page arguments' => array('server'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/settings/sitecon/server/private'] = array(
+    'title' => 'Server Private Key',
+    'description' => 'Setting your server private key',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_server_private_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/settings/sitecon/server/%/edit'] = array(
+    'title' => 'Update client',
+    'description' => 'Update client key and domain.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_form', 4, 'server'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['admin/settings/sitecon/server/%/delete'] = array(
+    'title' => 'Delete client',
+    'description' => 'Delete client.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_delete_form', 4, 'server'),
+    'access arguments' => array('administer site configuration'),
+  );
+  $items['sitecon/server/register'] = array(
+    'title' => 'Generate API Key',
+    'description' => 'Auto generate client api key for connect to this server',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sitecon_server_register_form'),
+    'access arguments' => array('access content'),
+  );
+  $items['admin/settings/sitecon/server/add'] = $items['sitecon/server/register'];
+  $items['sitecon/server/get_apikey/%/%'] = array(
+    'page callback' => 'sitecon_server_get_apikey',
+    'page arguments' => array(3, 4),
+    'access arguments' => array('access content'),
+  );
+  $items['sitecon/server/connect'] = array(
+    'page callback' => 'sitecon_server_connect',
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function sitecon_server_private_form() {
+  $form['private_key'] = array(
+    '#type' => 'password',
+    '#title' => t('Server Private Key'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'save', 
+  );
+  return $form;
+}
+
+/**
+ * Implementation of hook_submit().
+ */
+function sitecon_server_private_form_submit($form, &$form_state) {
+  if ($form_state['values']['private_key']) {
+    variable_set('sitecon_server_private_key', md5($form_state['values']['private_key']));
+  }
+  drupal_set_message('Your private key have been save.');
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function sitecon_server_register_form(&$form_state) {
+  $form['domain'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Your Domain Name'),
+    '#default_value' => $form_state['storage']['domain'],
+    '#description' => 'Domain name without http://'
+  );
+  $form['privatekey'] = array(
+    '#type' => 'password',
+    '#title' => t('Your Private Key'),
+    '#default_value' => $form_state['storage']['privatekey'],
+  );
+  $form['apikey'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API Key'),
+    '#default_value' => $form_state['storage']['apikey'],
+    '#attributes' => array('readonly' => 'readonly')
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Generate API Key', 
+  );
+  return $form;
+}
+
+/**
+ * Implementation of hook_submit().
+ */
+function sitecon_server_register_form_submit($form, &$form_state) {
+  $domain = str_replace('http://', '', $form_state['values']['domain']);
+  $form_state['storage']['domain'] = $domain;
+  $privatekey = md5($form_state['values']['privatekey']);
+  $form_state['storage']['privatekey'] = '';
+  
+  $apikey = sitecon_server_genkey($privatekey);
+  $form_state['storage']['apikey'] = $apikey;
+  db_query("INSERT INTO sitecon_server VALUES(NULL, '%s', '%s', '%s') ON DUPLICATE KEY UPDATE apikey = '%s'", $privatekey, $domain, $apikey, $apikey);
+}
+
+function sitecon_server_genkey($key) {
+  return md5(sitecon_encode(variable_get('sitecon_server_private_key', ''), $key));
+}
+
+function sitecon_server_get_apikey($domain, $privatekey) {
+  $domain = str_replace('http://', '', $domain);
+  $apikey = sitecon_server_genkey($privatekey);
+  db_query("INSERT INTO sitecon_server VALUES(NULL, '%s', '%s', '%s') ON DUPLICATE KEY UPDATE apikey = '%s'", $privatekey, $domain, $apikey, $apikey);
+  watchdog('sitecon', 'xxx'.$apikey);
+  drupal_json($apikey);
+}
+
+function sitecon_server_user_map($cid, $cuid, $uid) {
+  db_query("INSERT INTO sitecon_server_users VALUES(%d, %d, %d) ON DUPLICATE KEY UPDATE uid = %d", $cid, $cuid, $uid, $uid);
+}
+
+function sitecon_server_connect() {
+  global $user;
+  $_GET = array_merge($_GET, $_POST);
+
+  if (!$_GET['status'] || !$_GET['id'] || !$_GET['apikey'] || !$_GET['code']) {
+    exit();
+  }
+
+  $client = sitecon_get_item_from_apikey($_GET['apikey'], 'server');
+
+  // Ask to client, return user information if this session logged in the client.
+  $param = $_GET;
+  unset($param['q']);
+  $code = sitecon_decode($client->privatekey, $param['code']);
+  $response = drupal_http_request(
+    'http://'.$client->domain.'/sitecon/client/confirm', 
+    array('Content-Type' => 'application/x-www-form-urlencoded'), 
+    'POST', 
+    drupal_query_string_encode($param)
+  );
+
+  $data = sitecon_decode($client->privatekey, $response->data);
+
+  // Answer from client, not register/login if answer is false.
+  if ($data) {
+    $account = sitecon_autoregister($data);
+    switch ($_GET['status']) {
+      case 'login':
+        $account = sitecon_autologin($account);
+        break;
+      case 'logout':
+        if ($account->uid == $user->uid) {
+          sitecon_autologout();
+        }
+        break;
+      case 'after_update':
+        $data->uid = $account->uid;
+        if ($data->pass) {
+          db_query("UPDATE {users} SET mail = '%s', pass = '%s' WHERE name = '%s'", $data->mail, md5($data->pass), $data->name);
+        }
+        else {
+          db_query("UPDATE {users} SET mail = '%s' WHERE name = '%s'", $data->mail, $data->name);
+        }
+        break;
+    } 
+  
+    
+    // Map client user and server user.
+    sitecon_server_user_map($client->id, $data->uid, $account->uid);
+  }
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function sitecon_server_user() {
+  // TODO: check when user registered with email pattern of username, this username and email that are same.
+}

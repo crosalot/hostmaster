@@ -1,0 +1,8 @@
+#oneclick-add-site-form div {
+  position: relative;
+}
+#oneclick-add-site-form .suffix-domain {
+  position: absolute;
+  top: 11px;
+  right: 55px;
+}
