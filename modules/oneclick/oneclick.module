@@ -56,8 +56,8 @@ function oneclick_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  $items['get_user_from_client/%'] = array(
-    'page callback' => 'oneclick_get_user_from_client',
+  $items['get_init_from_client/%'] = array(
+    'page callback' => 'oneclick_get_init_from_client',
     'page arguments' => array(1),
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
@@ -70,8 +70,24 @@ function oneclick_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $items['admin/settings/oneclick'] = array(
+    'title' => 'oneclick',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oneclick_settings_form'), 
+    'access arguments' => array('administer site configuration'),
+  );
   return $items;
 }
+
+function oneclick_settings_form() {
+  $form['gmap_apikey'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Google Map API Key',
+    '#default_value' => variable_get('gmap_apikey', ''),
+  );
+  return system_settings_form($form);
+}
+
 function oneclick_site_is_success($task_id) {
   //$task_id = db_result(db_query("SELECT nid FROM {hosting_task} WHERE rid = %d", $site_id));
   $node = node_load($task_id);
@@ -378,16 +394,21 @@ function oneclick_sitecon_client_allow_con($server) {
   return FALSE;
 }
 
-function oneclick_get_user_from_client($domain) {
+function oneclick_get_init_from_client($domain) {
+  $data = array();
   $user = db_query("SELECT u.name, u.mail, u.pass, u.data FROM {users} u, {node} n, {hosting_client_user} hcu, {hosting_site} hs WHERE hcu.user = u.uid AND hcu.client = hs.client AND hs.nid = n.nid AND u.uid <> 1 AND n.title = '%s'", array($domain));
   $user = db_fetch_object($user);
   $user->data = unserialize($user->data);
+
+  $data['user'] = $user;
+  $data['gmap_apikey'] = variable_get('gmap_apikey', '');
+
   if ($_GET['format'] == 'json') {
     if ($_GET['callback']) {
-      print $_GET['callback'].'('.json_encode($user).')';
+      print $_GET['callback'].'('.json_encode($data).')';
     }
     else {
-      print json_encode($user);
+      print json_encode($data);
     }
     exit();
   }
