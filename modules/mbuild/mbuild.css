@@ -1,0 +1,85 @@
+/**
+*  Step 1 Style !! ^^
+*/
+#mbuild-step-1, #mbuild-step-2 {
+ background-color:#cdcdcd;
+ display:block;
+ float:left;
+ font-size:15px;
+ margin-left:15px;
+ margin-right:15px;
+ text-align:center;
+ width:47px;
+ font-size:3em;
+}
+#mbuild-site-name {
+ background-color:#ebebeb;
+ color:black;
+ font-size:2em;
+ float:left;
+ font-size: 2em;
+ padding: 10px;
+ display: block;
+}
+#mbuild-site-url {
+ background-color:#ebebeb;
+ color:#919191;
+ font-size:2em;
+ float:left;
+ display:block;
+ padding: 10px;
+}
+#mbuild-site-name-box, #mbuild-site-package-box {
+ border:1px solid #c0c0c0;
+ overflow: hidden;
+ padding:10px;
+}
+#page-title {
+ display:none;
+}
+#edit-submit-1, #edit-submit-2 {
+ background-image:url('nextstep.png');
+ border:medium none;
+ height:44px;
+ text-indent: -9999px;
+ width:164px;
+ cursor: pointer;
+ float: right;
+ clear: left;
+}
+
+.form-radio {
+ display: none;
+}
+
+.form-radios label, .form-radios label span {
+  overflow: hidden;
+}
+
+.form-radios > .form-item {
+  overflow: hidden;
+  display: block;
+  float: left;
+  width: 175px;
+  height: 175px;
+  margin: 5px 5px;
+  padding: 10px 10px;
+  text-align: center;
+}
+
+.form-radios > .form-item:hover {
+  background-color: #e7507b;
+}
+
+.form-radios > .form-item.selected {
+  background-color: #e7507b;
+}
+
+.mbuild-step-msg {
+  float: right;
+  font-size: 1.4em;
+}
+
+div.clear-left {
+  clear: left;
+}

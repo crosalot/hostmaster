@@ -266,7 +266,7 @@ function logintoboggan_form_alter(&$form, $form_state, $form_id) {
           $form['pass']['#description'] = t('Please choose a password for your account; it must be !length 30 characters.', array('!length' => $length));
         }
         // crosalot edit
-        $form['address'] = array('#type' => 'hidden', '#value' => $_GET['address'].'.'.variable_get('site_name', 'localhost'));
+        $form['address'] = array('#type' => 'hidden', '#value' => $_GET['address'].'.'.$_SERVER['SERVER_NAME']);
       }
       break;
 

@@ -1,12 +1,12 @@
-; $Id: genesis_SUBTHEME.info,v 1.7.2.13 2009/06/12 15:44:26 jmburnz Exp $
+; $Id: genesis_marui.info,v 1.7.2.13 2009/06/12 15:44:26 jmburnz Exp $
 
 
 ;----------// Theme Information
 
  ; Change the name to match your new subthemes name. Modify the optional description.
 
-  name        = Marui
-  description = Marui Potal base on Genesis
+  name        = Genesis Marui
+  description = My Kickn' Sub-theme
 
 
 

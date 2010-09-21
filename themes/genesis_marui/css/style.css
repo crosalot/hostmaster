@@ -13,7 +13,9 @@
  *                    Body
  **********************************************************/
 body {
-  font-family: Helvetica, Verdana, Geneva, "DejaVu Sans", sans-serif;
+  font-family: Verdana, Geneva, "DejaVu Sans", sans-serif;
+	padding: 0;
+	margin: 0;
 }
 
 
@@ -130,55 +132,148 @@ a img {
  * into one if the modular stylesheets (such as the nodes, blocks,
  * page and comments stylesheets).
  */
-	
-	
-/* Block - Open Web */
-#block-oneclick-0 {
-  background: url(../images/open-web-block-bg.png) no-repeat;
-  width: 360px;
-  height: 324px;
-  overflow: hidden;
-  padding: 20px;
+#top-bg, #front-sub-bg {
+	background: url("../images/sub-bg.png") repeat-x scroll 0px 0px transparent;
+	height:300px;
+	width:100%;
+	position:absolute;
 }
-#block-oneclick-0 input.form-text,
-#block-oneclick-0 textarea {
-  width: 300px;
-}
-	
-	
-/* Block - Introduce VDO */
-#block-block-2 {
-  width: 540px;
-  height: 324px;
-  background: #000;
-}
-	
-	
-/* Front - Showcase */
-#showcase-1, #showcase-3 {
-  width: 260px;
-  margin-right: 20px;
+#front-sub-bg {
+	top: 295px;
 }
 
-#showcase-2, #showcase-4 {
-  width: 260px;
-}	
-#showcase .showcase {
-  float: left;
-  margin-bottom: 20px;
+#block-mbuild-mbuild_create_site {
+	position: absolute;
+	top: -90px;
+	right: 60px;
+	width: 325px;
+	background: url("../images/1x1-black.png") repeat scroll 0px 0px transparent;
 }
-h2.showcase {
-  font-size: 36px;
-  font-weight: normal;
-  color: #d5006c;
+#block-mbuild-mbuild_create_site .block-inner {
+	background-color:#FFFFFF;
+	margin:10px;
+	padding:10px 10px 15px;
 }
-	
-	
-/* Footer Menu */
-#footer .block-menu li {
-  float: left;
-  margin-right: 10px;
-  list-style: none;
-  padding: 0;
-  margin: 0 20px 0 0;
+#block-mbuild-mbuild_create_site h2 {
+	font-size: 2em;
 }
+
+.oneclick-line {
+	height: 7px;
+	width: 100%;
+	background:url("../images/line.png") repeat-x scroll 0px 0px transparent;
+}
+.oneclick-first-step,
+.oneclick-second-step,
+.oneclick-second-third {
+	margin-top: 15px;
+	width: 100%;
+}
+.oneclick-first-step {
+	height: 51px;
+	margin-bottom: 20px;
+	background:url("../images/step-1.png") no-repeat scroll 2px -49px transparent;
+}
+.oneclick-second-step {
+	height: 59px;
+	background:url("../images/step-2.jpg") no-repeat scroll 0px 0px transparent;
+}
+.oneclick-third-step {
+	height: 59px;
+	background:url("../images/step-3.png") no-repeat scroll 0px 0px transparent;
+}
+
+#oneclick-add-site-form .suffix-domain {
+	top: 15px;
+	font-size: 1.3em;
+	position: absolute;
+	right: 560px;
+}
+#mbuild-login-form {
+	margin: 0;
+}
+#block-mbuild-mbuild_create_site #oneclick-add-site-form .suffix-domain {
+	right: 11px;
+}
+#edit-address-wrapper {
+	width: 430px;
+  border:1px solid #CCCCCC;
+	background-color:#EBEBEB;
+}
+#block-mbuild-mbuild_create_site #edit-address-wrapper {
+	width: auto;
+}
+#edit-address-wrapper.focus {
+	background: none repeat scroll 0 0 #FFFFDF;
+	border: 1px solid #FFCC00;
+}
+#edit-address-wrapper label,
+#edit-category-wrapper label {
+	display: none;
+}
+#edit-address-wrapper input {
+	width: 300px;
+	height: 40px;
+	margin: 0px;
+	border: 0px none !important;
+	background:none repeat scroll 0 0 transparent;
+	font-size: 1.3em;
+	color: #F55A86;
+	padding-top: 7px;
+	padding-left: 2px;
+}
+#block-mbuild-mbuild_create_site #edit-address-wrapper input {
+	width: 155px;
+}
+
+#edit-category-wrapper {
+	margin-bottom: 25px;
+}
+#edit-category-wrapper select {
+	height: 40px;
+	background-color:#EBEBEB;
+	font-size: 1.3em;
+}
+
+#oneclick-add-site-form .form-submit, .form-submit {
+	background: url("../images/button-next.png") no-repeat scroll center bottom transparent;
+	width: 166px;
+	height: 42px;
+	border: medium none;
+	cursor: pointer;
+	text-indent: -20000px;
+}
+
+#block-node_weight-banner {
+	margin: 20px 0 20px 0;
+}
+
+
+
+/* step 2 */
+
+#second-from-wrapper {
+	border: 1px solid #E56095;
+	border-top: none;
+	overflow: hidden;
+	padding: 30px 20px 20px 20px;
+}
+
+#select-theme-wrapper {
+}
+
+#select-theme-wrapper > .form-item > label {
+	font-size: 2.3em;
+	color: #C9325B;
+}
+#user-register {
+	float:left;
+	width:540px;
+}
+#user-login {
+	clear:none;
+	float:left;
+	margin-left:20px;
+	width:280px;
+}
+

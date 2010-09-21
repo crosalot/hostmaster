@@ -1,0 +1,168 @@
+<?php
+// $Id$
+
+/* Define pagkage path */
+define('PACKAGE_PATH', getcwd(). '/packages');
+
+/**
+ * Implementation of hook_menu().
+ */
+function mbuild_menu() {
+  $items['step/2'] = array(
+    'title' => t('Select theme'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mbuild_select_theme_form'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'mbuild.select_theme.inc'
+  );
+
+  $items['step/3'] = array(
+    'title' => t('Login'),
+    'page callback' => 'mbuild_registration',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'mbuild.login.inc'
+  );
+
+  return $items;
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function mbuild_block($op = 'list', $delta = 0, $edit = array()) {
+  if ($op == 'list') {
+    $blocks['mbuild_create_site'] = array(
+      'info' => t('Create site form'),
+    );
+    return $blocks;
+  }
+  else if ($op == 'view') {
+    switch($delta) {
+      case 'mbuild_create_site':
+        $block = array(
+          'subject' => t('Create new website'),
+          'content' => drupal_get_form('oneclick_add_site_form'),
+        );
+        break;
+    }
+
+    return $block;
+  }
+}
+
+function mbuild_create_site() {
+  return '';
+}
+
+
+/**
+ * Helper: fetch theme data from database.
+ */
+function mbuild_get_packages() {
+  $packages = cache_get('mbuild_packages_info');
+  if (!empty($packages)) {
+    return $packages->data;
+  }
+
+  $files =  file_scan_directory(PACKAGE_PATH, '.*\.info');
+
+  $packages = array();
+  foreach ($files as $file) {
+    $package_name = $file->name;
+
+    $ini_data = parse_ini_file($file->filename);
+    $ini_data['machine_name'] = $file->name;
+
+    // Find parent directory of module.info
+    $parent_path = explode('/', dirname($file->filename));
+    $ini_data['drupal_path'] = 'packages/'. $parent_path[count($parent_path) - 1];
+
+    $file = (array)$file;
+    $package_info = array_merge($file, $ini_data);
+
+    $packages[$package_name] = (object)$package_info;
+  }
+  cache_set('mbuild_packages_info', $packages);
+
+  return $packages;
+}
+
+function mbuild_theme($existing, $type, $theme, $path) {
+  return array(
+    'mbuild_package_item' => array(
+      'arguments' => array('path' => base_path(), 'name' => '', 'preview_image' => ''),
+    ),
+    'mbuild_info_address' => array(
+      'arguments' => array('address' => ''),
+    ),
+    'mbuild_info_package' => array(
+      'arguments' => array('path' => base_path(), 'name' => '', 'preview_image' => ''),
+    ),
+  );
+}
+
+function theme_mbuild_info_address($address) {
+  $output .= '<div id="mbuild-site-name-box">'.
+               '<span id="mbuild-step-1">1</span>'.
+               '<span id="mbuild-site-name">'. $address .'</span>'.
+               '<span id="mbuild-site-url">.openweb.in.th</span>'.
+               '<span class="mbuild-step-msg">'.
+                 t('Select domain name') .
+               '</span>'.
+             '</div>';
+
+  return $output;
+}
+
+function theme_mbuild_info_package($path, $name, $preview_image) {
+  $output .= '<div id="mbuild-site-package-box">'.
+               '<span id="mbuild-step-2">2</span>'.
+               '<span id="mbuild-site-package-img">'.
+                 theme('image', $path .'/'. $preview_image) .
+               '</span>'.
+               '<span class="mbuild-step-msg">'.
+                 t('Select theme') .
+               '</span>'.
+             '</div>';
+
+  return $output;
+}
+
+function theme_mbuild_package_item($path, $name, $preview_image) {
+  $output = '<span class="package-image">'.
+              theme('image', $path .'/'. $preview_image) .
+            '</span><div class="clear-left"></div>'.
+            '<span class="package-name">'.
+              $name .
+            '</span>';
+
+  return $output;
+}
+
+function mbuild_form_alter(&$form, &$form_state, $form_id) {
+  if (arg(0) != 'step' || arg(1) != '3') {
+    return;
+  }
+
+  if ($form_id == 'user_register' || $form_id == 'user_login') {
+    $form['#submit'][] = 'mbuild_user_form_submit';
+    $form_state['storage']['address'] = $_GET['address'];
+    $form_state['storage']['package'] = $_GET['package'];
+    $form_state['storage']['category'] = $_GET['category'];
+  }
+
+}
+
+function mbuild_user_form_submit($form, &$form_state) {
+  global $user;
+  $address = $form_state['storage']['address'];
+  $package = $form_state['storage']['package'];
+  $category = $form_state['storage']['category'];
+  oneclick_build_all($user, array(
+    'address' => $address.'.'.$_SERVER['SERVER_NAME'],
+    'package' => $package,
+    'category' => $category,
+  ));
+}
