@@ -1,5 +1,5 @@
 <?php
-// $Id: admin_menu.inc,v 1.11.2.20.2.23 2009/08/14 12:19:10 sun Exp $
+// $Id: admin_menu.inc,v 1.11.2.20.2.29 2010/03/06 01:19:53 sun Exp $
 
 /**
  * @file
@@ -24,6 +24,14 @@ function admin_menu_links_menu($tree) {
   foreach ($tree as $data) {
     // Skip menu callbacks (mostly dynamic items).
     if (isset($data['link']['type']) && $data['link']['type'] == MENU_CALLBACK) {
+      continue;
+    }
+    // Hide 'Administer' and make child links appear on this level.
+    // @todo Make this configurable.
+    if ($data['link']['router_path'] == 'admin') {
+      if ($data['below']) {
+        $links = array_merge($links, admin_menu_links_menu($data['below']));
+      }
       continue;
     }
     // Omit alias lookups.
@@ -181,16 +189,16 @@ function admin_menu_links_user() {
     '#href' => 'user/' . $GLOBALS['user']->uid,
   );
   $links['logout'] = array(
-    '#title' => 'Log out',
+    '#title' => t('Log out'),
     '#weight' => -100,
     '#attributes' => array('class' => array('admin-menu-action')),
     '#href' => 'logout',
   );
 
-  // Add Devel module links.
-  if (module_exists('devel')) {
-    // Add switch user links.
-    foreach (module_invoke('devel', 'switch_user_list') as $link) {
+  // Add Devel module switch user links.
+  $switch_links = module_invoke('devel', 'switch_user_list');
+  if (!empty($switch_links) && count($switch_links) > 1) {
+    foreach ($switch_links as $uid => $link) {
       $links['account'][$link['title']] = array(
         '#title' => $link['title'],
         '#description' => $link['attributes']['title'],
@@ -235,6 +243,12 @@ function admin_menu_theme_settings() {
   if (module_exists('util')) {
     $form['tweaks']['admin_menu_tweak_modules']['#description'] .= '<br /><strong>' . t('If the Utility module was installed for this purpose, it can be safely disabled and uninstalled.') . '</strong>';
   }
+  $form['tweaks']['admin_menu_tweak_permissions'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Collapse modules on permissions page'),
+    '#default_value' => variable_get('admin_menu_tweak_permissions', 0),
+    '#description' => t('Collapses permissions by module on the <a href="@permissions-url">permissions</a> page.', array('@permissions-url' => url('admin/user/permissions'))),
+  );
   $form['tweaks']['admin_menu_tweak_tabs'] = array(
     '#type' => 'checkbox',
     '#title' => t('Move local tasks into menu'),
@@ -397,6 +411,7 @@ function admin_menu_flush_cache($name = NULL) {
     case 'cache':
       // Don't clear cache_form - in-progress form submissions may break.
       // Ordered so clearing the page cache will always be the last action.
+      // @see drupal_flush_all_caches()
       $core = array('cache', 'cache_block', 'cache_filter', 'cache_page');
       $cache_tables = array_merge(module_invoke_all('flush_caches'), $core);
       foreach ($cache_tables as $table) {

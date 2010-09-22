@@ -78,7 +78,17 @@ function oneclick_menu() {
     'page arguments' => array('oneclick_settings_form'), 
     'access arguments' => array('administer site configuration'),
   );
+  $items['ping'] = array(
+    'page callback' => 'oneclick_ping',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
   return $items;
+}
+
+function oneclick_ping() {
+  print ip_address();
+  exit();
 }
 
 function oneclick_settings_form() {
@@ -313,7 +323,7 @@ function oneclick_build_all($account, $info=array()) {
   }
   
   // Remove initial user site
-  user_save($account, array('address' => NULL));
+  user_save($account, array('address' => NULL, 'package' => $info['package']));
 
   // Build site with address
   oneclick_build_site($address, $account, $info);
@@ -433,11 +443,13 @@ function oneclick_get_init_from_client($domain) {
   $user->data = unserialize($user->data);
   
   $site = node_load($user->nid);
+  $riginal_package = $site->field_site_original_package['0']['value'];
+  $current_package = $site->field_site_current_package['0']['value'];
 
   $data['user'] = $user;
   $data['gmap_apikey'] = variable_get('gmap_apikey', '');
-  $data['original_package'] = $site->field_site_original_package['0']['value'];
-  $data['current_package'] = $site->field_site_current_package['0']['value'];
+  $data['original_package'] = $original_package? $original_package: $user->data['package'];
+  $data['current_package'] = $current_package? $current_package: $user->data['package'];
   $data['category'] = $site->field_site_category['0']['value'];
   $data['has_domain'] = $site->field_site_has_domain['0']['value'];
 

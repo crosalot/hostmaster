@@ -1,5 +1,5 @@
 <?php
-// $Id: admin_menu.module,v 1.43.2.17.2.26 2009/08/16 21:51:12 sun Exp $
+// $Id: admin_menu.module,v 1.43.2.17.2.30 2010/02/20 01:02:58 sun Exp $
 
 /**
  * @file
@@ -11,7 +11,7 @@
  */
 
 /**
- * Implementation of hook_help().
+ * Implements hook_help().
  */
 function admin_menu_help($path, $arg) {
   switch ($path) {
@@ -28,14 +28,14 @@ function admin_menu_help($path, $arg) {
 }
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_perm().
  */
 function admin_menu_perm() {
   return array('access administration menu', 'display drupal links');
 }
 
 /**
- * Implementation of hook_theme().
+ * Implements hook_theme().
  */
 function admin_menu_theme() {
   return array(
@@ -50,7 +50,7 @@ function admin_menu_theme() {
 }
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function admin_menu_menu() {
   // AJAX callback.
@@ -86,47 +86,41 @@ function admin_menu_menu() {
 }
 
 /**
- * Implementation of hook_menu_alter().
+ * Implements hook_menu_alter().
  */
 function admin_menu_menu_alter(&$items) {
-  // Move all items below admin/* into administration menu.
   foreach ($items as $path => $item) {
-    if (strpos($path, 'admin') === 0) {
-      if (!isset($item['type'])) {
-        $items[$path]['menu_name'] = 'admin_menu';
-      }
-      else {
+    if (!strncmp($path, 'admin/', 6)) {
+      if (isset($item['type'])) {
         // For any reason, content-type menu items are registered individually
         // in Drupal core, but also by CCK. We a) have to copy and re-assign
         // them the proper router path and b) turn their parent items from
         // MENU_CALLBACK into something visible; otherwise, the menu system
         // does not find the parents and relocates child items to the top-level.
         if (strpos($path, 'admin/content/node-type/') === 0) {
-          // Fix router path.
-          $newpath = strtr($path, array('/node-type/' => '/types/'));
-          $items[$newpath] = $items[$path];
-          // Alter item type and visibility.
-          $items[$newpath]['type'] &= ~MENU_CALLBACK;
-          if ($items[$newpath]['type'] === 0) {
-            $items[$newpath]['type'] |= MENU_NORMAL_ITEM;
-          }
+          // Copy item with fixed router path.
+          $newpath = str_replace('/node-type/', '/types/', $path);
+          $items[$newpath] = $item;
           // Use new item from here, but leave old intact to play nice with
           // others.
           $path = $newpath;
-          $item = $items[$newpath];
+          // Turn MENU_CALLBACK items into visible menu items.
+          if ($item['type'] == MENU_CALLBACK) {
+            $items[$path]['type'] = MENU_NORMAL_ITEM;
+          }
         }
-        if ($item['type'] & MENU_IS_LOCAL_TASK) {
-          // Trick this item into the visible menu tree.
-          $items[$path]['_visible'] = TRUE;
-        }
-        // Skip invisible MENU_CALLBACKs, but make sure that it is not a
-        // MENU_NORMAL_ITEM, which shares the MENU_VISIBLE_IN_BREADCRUMB bit.
-        if ($item['type'] === MENU_CALLBACK) {
+        // Skip invisible MENU_CALLBACKs.
+        if ($item['type'] == MENU_CALLBACK) {
           continue;
+        }
+        // Trick local tasks and actions into the visible menu tree.
+        if ($item['type'] & MENU_IS_LOCAL_TASK) {
+          $items[$path]['_visible'] = TRUE;
         }
         $items[$path]['menu_name'] = 'admin_menu';
       }
     }
+/*
     // Copy 'Add new content' into admin_menu menu.
     elseif (strpos($path, 'node/add') === 0) {
       $newpath = 'admin/' . $path;
@@ -136,10 +130,11 @@ function admin_menu_menu_alter(&$items) {
         $items[$newpath]['weight'] = -15;
       }
     }
+*/
   }
 
   // Remove 'admin', so children appear on the top-level.
-  $items['admin']['type'] = MENU_CALLBACK;
+  $items['admin']['menu_name'] = 'admin_menu';
   // Remove local tasks on 'admin'.
   $items['admin/by-task']['_visible'] = FALSE;
   $items['admin/by-module']['_visible'] = FALSE;
@@ -156,7 +151,7 @@ function admin_menu_menu_alter(&$items) {
   db_query("UPDATE {menu_links} SET menu_name = 'admin_menu', customized = 0 WHERE router_path = 'admin'");
 
   // Flush client-side caches whenever the menu is rebuilt.
-  module_invoke('admin_menu', 'flush_caches');
+  admin_menu_flush_caches();
 }
 
 /**
@@ -191,7 +186,7 @@ function admin_menu_copy_item($item, $old_path, $new_path) {
 }
 
 /**
- * Implementation of hook_menu_link_alter().
+ * Implements hook_menu_link_alter().
  */
 function admin_menu_menu_link_alter(&$item, $menu) {
   // @todo Temporary fix until #550254 has been released.
@@ -258,7 +253,7 @@ function admin_menu_menu_link_alter(&$item, $menu) {
 }
 
 /**
- * Implementation of hook_init().
+ * Implements hook_init().
  *
  * We can't move this into admin_menu_footer(), because PHP-only based themes
  * like chameleon load and output scripts and stylesheets in front of
@@ -317,6 +312,9 @@ function admin_menu_init() {
   if ($_GET['q'] == 'admin/build/modules' || strpos($_GET['q'], 'admin/build/modules/list') === 0) {
     $settings['tweak_modules'] = variable_get('admin_menu_tweak_modules', 0);
   }
+  if ($_GET['q'] == 'admin/user/permissions') {
+    $settings['tweak_permissions'] = variable_get('admin_menu_tweak_permissions', 0);
+  }
 
   drupal_add_js(array('admin_menu' => $settings), 'setting');
 }
@@ -344,14 +342,14 @@ function admin_menu_suppress($set = TRUE) {
 }
 
 /**
- * Implementation of hook_footer().
+ * Implements hook_footer().
  */
 function admin_menu_footer($main = 0) {
   return admin_menu_output();
 }
 
 /**
- * Implementation of hook_js().
+ * Implements hook_js().
  */
 function admin_menu_js() {
   return array(
@@ -452,7 +450,7 @@ function admin_menu_js_cache($hash = NULL) {
 }
 
 /**
- * Implementation of hook_admin_menu_replacements().
+ * Implements hook_admin_menu_replacements().
  */
 function admin_menu_admin_menu_replacements() {
   $items = array();
@@ -568,7 +566,7 @@ function admin_menu_output() {
  * @param $depth
  *   Current recursion level; internal use only.
  */
-function theme_admin_menu_links(&$elements, $depth = 0) {
+function theme_admin_menu_links($elements, $depth = 0) {
   static $destination;
 
   if (!isset($destination)) {
@@ -663,7 +661,7 @@ function theme_admin_menu_links(&$elements, $depth = 0) {
 }
 
 /**
- * Implementation of hook_translated_menu_link_alter().
+ * Implements hook_translated_menu_link_alter().
  *
  * Here is where we make changes to links that need dynamic information such
  * as the current page path or the number of users.
@@ -701,7 +699,7 @@ function admin_menu_translated_menu_link_alter(&$item, $map) {
 }
 
 /**
- * Implementation of hook_flush_caches().
+ * Implements hook_flush_caches().
  *
  * Flush client-side caches.
  */
@@ -716,7 +714,7 @@ function admin_menu_flush_caches() {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Form submit handler to flush client-side cache hashes when clean URLs are toggled.
  */
@@ -725,7 +723,7 @@ function admin_menu_form_system_clean_url_settings_alter(&$form, $form_state) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter().
  *
  * Extends Devel module with Administration menu developer settings.
  */
@@ -733,4 +731,3 @@ function admin_menu_form_devel_admin_settings_alter(&$form, $form_state) {
   module_load_include('inc', 'admin_menu');
   _admin_menu_form_devel_admin_settings_alter($form, $form_state);
 }
-

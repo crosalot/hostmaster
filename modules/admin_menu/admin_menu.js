@@ -1,4 +1,5 @@
-/* $Id: admin_menu.js,v 1.7.2.7.2.14 2009/07/22 20:40:22 sun Exp $ */
+/* $Id: admin_menu.js,v 1.7.2.7.2.18 2010/02/20 23:44:04 sun Exp $ */
+(function($) {
 
 Drupal.admin = Drupal.admin || {};
 Drupal.admin.behaviors = Drupal.admin.behaviors || {};
@@ -17,6 +18,7 @@ Drupal.behaviors.adminMenu = function (context) {
     margin_top: false,
     position_fixed: false,
     tweak_modules: false,
+    tweak_permissions: false,
     tweak_tabs: false,
     destination: '',
     basePath: Drupal.settings.basePath,
@@ -55,6 +57,30 @@ Drupal.behaviors.adminMenu = function (context) {
 Drupal.behaviors.adminMenuCollapseModules = function (context) {
   if (Drupal.settings.admin_menu.tweak_modules) {
     $('#system-modules fieldset:not(.collapsed), #system-modules-1 fieldset:not(.collapsed)', context).addClass('collapsed');
+  }
+};
+
+/**
+ * Collapse modules on Permissions page.
+ */
+Drupal.behaviors.adminMenuCollapsePermissions = function (context) {
+  if (Drupal.settings.admin_menu.tweak_permissions) {
+    // Freeze width of first column to prevent jumping.
+    $('#permissions th:first', context).css({ width: $('#permissions th:first', context).width() });
+    // Attach click handler.
+    $('#permissions tr:has(td.module)', context).each(function () {
+      var $module = $(this).addClass('admin-menu-tweak-permissions-processed');
+      $module.bind('click.admin-menu', function () {
+        // @todo Replace with .nextUntil() in jQuery 1.4.
+        $module.nextAll().each(function () {
+          var $row = $(this);
+          if ($row.is(':has(td.module)')) {
+            return false;
+          }
+          $row.toggleClass('element-hidden');
+        });
+      });
+    }).trigger('click.admin-menu');
   }
 };
 
@@ -128,7 +154,7 @@ Drupal.admin.behaviors.positionFixed = function (context, settings, $adminMenu) 
 Drupal.admin.behaviors.pageTabs = function (context, settings, $adminMenu) {
   if (settings.admin_menu.tweak_tabs) {
     $('ul.tabs.primary li', context).addClass('admin-menu-tab').appendTo('#admin-menu-wrapper > ul');
-    $('ul.tabs.secondary', context).appendTo('#admin-menu-wrapper > ul > li.admin-menu-tab.active');
+    $('ul.tabs.secondary', context).appendTo('#admin-menu-wrapper > ul > li.admin-menu-tab.active').removeClass('secondary');
     $('ul.tabs.primary', context).remove();
   }
 };
@@ -162,31 +188,39 @@ Drupal.admin.behaviors.destination = function (context, settings, $adminMenu) {
 Drupal.admin.behaviors.hover = function (context, settings, $adminMenu) {
   // Hover emulation for IE 6.
   if ($.browser.msie && parseInt(jQuery.browser.version) == 6) {
-    $('li', $adminMenu).hover(function() {
-      $(this).addClass('iehover');
-    }, function() {
-      $(this).removeClass('iehover');
-    });
+    $('li', $adminMenu).hover(
+      function () {
+        $(this).addClass('iehover');
+      },
+      function () {
+        $(this).removeClass('iehover');
+      }
+    );
   }
 
   // Delayed mouseout.
-  $('li', $adminMenu).hover(function() {
-    // Stop the timer.
-    clearTimeout(this.sfTimer);
-    // Display child lists.
-    $('> ul', this).css({left: 'auto', display: 'block'})
-      // Immediately hide nephew lists.
-      .parent().siblings('li').children('ul').css({left: '-999em', display: 'none'});
-  }, function() {
-    // Start the timer.
-    var uls = $('> ul', this);
-    this.sfTimer = setTimeout(function() {
-      uls.css({left: '-999em', display: 'none'});
-    }, 400);
-  });
+  $('li.expandable', $adminMenu).hover(
+    function () {
+      // Stop the timer.
+      clearTimeout(this.sfTimer);
+      // Display child lists.
+      $('> ul', this)
+        .css({left: 'auto', display: 'block'})
+        // Immediately hide nephew lists.
+        .parent().siblings('li').children('ul').css({left: '-999em', display: 'none'});
+    },
+    function () {
+      // Start the timer.
+      var uls = $('> ul', this);
+      this.sfTimer = setTimeout(function () {
+        uls.css({left: '-999em', display: 'none'});
+      }, 400);
+    }
+  );
 };
 
 /**
  * @} End of "defgroup admin_behaviors".
  */
 
+})(jQuery);

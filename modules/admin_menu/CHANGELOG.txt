@@ -1,4 +1,4 @@
-// $Id: CHANGELOG.txt,v 1.33.2.48.2.56 2009/08/16 22:38:24 sun Exp $
+// $Id: CHANGELOG.txt,v 1.33.2.48.2.73 2010/03/11 02:27:01 sun Exp $
 
 Admin Menu x.x-x.x, xxxx-xx-xx
 ------------------------------
@@ -6,6 +6,27 @@ Admin Menu x.x-x.x, xxxx-xx-xx
 
 Admin Menu 6.x-3.x, xxxx-xx-xx
 ------------------------------
+
+
+Admin Menu 6.x-3.0-ALPHA4, 2010-03-11
+-------------------------------------
+#730156 by sun: Fixed Administration views.
+by sun: Fixed missing .element-hidden style in D6 for permissions tweak.
+#645526 by TravisCarden: Fixed stale local tasks markup after moving them.
+#667856 by salvis, sun: Fixed switch user list may be empty.
+#366442 by sun: Added tweak to collapse modules on permissions page.
+#655926 by donquixote, sun: Improved performance of delayed mouseout.
+#557062 by sun: Fixed admin_menu_toolbar JS/CSS loaded before admin_menu's.
+#599462 by sun, koyama: Added background-color to avoid unintentional override.
+#601918 by BWPanda: Fixed admin_menu.css overrides admin_menu_toolbar.css.
+#586228 by Island Usurper: Fixed for PHP 5.3.
+#554124 by Dave Reid: Added missing toolbar.png.
+#557062 by Dave Reid: Fixed undefined Drupal.admin error when including
+  admin_menu_toolbar.js before admin_menu.js.
+#511744 by smk-ka, sun: Fixed /admin page links are broken.
+by smk-ka: Added missing variables to hook_uninstall().
+#571038 by smk-ka: Removed call to admin_menu_wipe() and cleaned install file.
+#552190 by Bartezz: Fixed missing t() for user logout link.
 
 
 Admin Menu 6.x-3.0-ALPHA3, 2009-08-16

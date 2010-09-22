@@ -1,4 +1,4 @@
-/* $Id: admin_menu.css,v 1.25.2.4.2.5 2009/07/22 20:33:17 sun Exp $ */
+/* $Id: admin_menu.css,v 1.25.2.4.2.8 2010/03/06 01:19:53 sun Exp $ */
 
 /**
  * @file
@@ -59,6 +59,7 @@ body.admin-menu {
   position: static;
 }
 #admin-menu ul a {
+  background: transparent none;
   border-bottom: none;
   border-right: 1px solid #323232;
   color: #EEE;
@@ -196,3 +197,27 @@ html.js fieldset.collapsible div.fieldset-wrapper {
     margin-top: 0 !important;
   }
 }
+
+/**
+ * Tweaks permissions, if enabled.
+ */
+tr.admin-menu-tweak-permissions-processed {
+  cursor: pointer;
+  cursor: hand;
+}
+tr.admin-menu-tweak-permissions-processed td.module {
+  border-top: 0;
+}
+
+/**
+ * Hide elements from all users. (D7 backport)
+ *
+ * Used for elements which should not be immediately displayed to any user. An
+ * example would be a collapsible fieldset that will be expanded with a click
+ * from a user. The effect of this class can be toggled with the jQuery show()
+ * and hide() functions.
+ */
+.element-hidden {
+  display: none;
+}
+

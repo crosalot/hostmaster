@@ -1,4 +1,4 @@
-/* $Id: admin_menu_toolbar.css,v 1.2.2.2 2009/08/16 20:55:33 sun Exp $ */
+/* $Id: admin_menu_toolbar.css,v 1.2.2.4 2009/11/12 03:12:40 sun Exp $ */
 
 /**
  * @file
@@ -18,7 +18,7 @@ body div#toolbar {
   padding: 5px 10px 0;
 }
 #admin-menu-shadow {
-  background: transparent url(/modules/toolbar/toolbar.png) 0 -85px repeat-x;
+  background: transparent url(toolbar.png) 0 -85px repeat-x;
   bottom: -15px;
   height: 15px;
   left: 0;
@@ -28,7 +28,7 @@ body div#toolbar {
 #admin-menu li.admin-menu-icon > a {
   padding: 3px 8px 2px;
 }
-body.admin-menu {
+html body.admin-menu {
   margin-top: 30px !important;
 }
 
@@ -47,7 +47,7 @@ body.admin-menu {
 }
 #admin-menu ul li.admin-menu-toolbar-category > a.active-trail {
   text-shadow: #333 0 1px 0;
-  background: url(/modules/toolbar/toolbar.png) 0 0 repeat-x;
+  background: url(toolbar.png) 0 0 repeat-x;
 }
 #admin-menu ul li.admin-menu-toolbar-category > a:hover {
   background-color: #444;
@@ -64,7 +64,7 @@ body.admin-menu {
   float: right;
 }
 #admin-menu li.admin-menu-shortcuts span.toggle {
-  background: url(/modules/toolbar/toolbar.png) 0 -60px no-repeat;
+  background: url(toolbar.png) 0 -60px no-repeat;
   cursor: pointer;
   display: block;
   height: 25px;
@@ -103,5 +103,5 @@ body.admin-menu {
 }
 #admin-menu li.admin-menu-shortcuts ul li a.active:hover,
 #admin-menu li.admin-menu-shortcuts ul li a.active {
-  background: url(/modules/toolbar/toolbar.png) 0 -20px repeat-x;
+  background: url(toolbar.png) 0 -20px repeat-x;
 }

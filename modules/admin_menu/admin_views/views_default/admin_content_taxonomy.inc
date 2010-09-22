@@ -1,5 +1,5 @@
 <?php
-// $Id: admin_content_taxonomy.inc,v 1.1.2.2 2009/08/16 21:00:20 sun Exp $
+// $Id: admin_content_taxonomy.inc,v 1.1.2.4 2010/03/11 02:22:21 sun Exp $
 
 $view = new view;
 $view->name = 'admin_content_taxonomy';
@@ -9,7 +9,7 @@ $view->view_php = '';
 $view->base_table = 'term_data';
 $view->is_cacheable = FALSE;
 $view->api_version = 2;
-$view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
+$view->disabled = TRUE; /* Edit this to true to make a default view disabled initially */
 $handler = $view->new_display('default', 'Defaults', 'default');
 $handler->override_option('fields', array(
   'name_1' => array(
@@ -64,7 +64,7 @@ $handler->override_option('fields', array(
     'relationship' => 'none',
   ),
   'tid' => array(
-    'label' => 'Term ID',
+    'label' => 'Operations',
     'alter' => array(
       'alter_text' => 1,
       'text' => 'edit',
@@ -74,6 +74,7 @@ $handler->override_option('fields', array(
       'alt' => '',
       'prefix' => '',
       'suffix' => '',
+      'target' => '',
       'help' => '',
       'trim' => 0,
       'max_length' => '',
@@ -82,6 +83,9 @@ $handler->override_option('fields', array(
       'strip_tags' => 0,
       'html' => 0,
     ),
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
     'set_precision' => FALSE,
     'precision' => 0,
     'decimal' => '.',
@@ -93,6 +97,9 @@ $handler->override_option('fields', array(
     'table' => 'term_data',
     'field' => 'tid',
     'relationship' => 'none',
+    'override' => array(
+      'button' => 'Override',
+    ),
   ),
 ));
 $handler->override_option('sorts', array(
@@ -113,7 +120,7 @@ $handler->override_option('sorts', array(
 ));
 $handler->override_option('arguments', array(
   'vid' => array(
-    'default_action' => 'not found',
+    'default_action' => 'ignore',
     'style_plugin' => 'default_summary',
     'style_options' => array(),
     'wildcard' => '',
@@ -131,7 +138,6 @@ $handler->override_option('arguments', array(
     'validate_user_roles' => array(
       '2' => 0,
       '3' => 0,
-      '4' => 0,
     ),
     'override' => array(
       'button' => 'Override',
@@ -141,9 +147,7 @@ $handler->override_option('arguments', array(
     'default_argument_user' => 0,
     'default_argument_fixed' => '',
     'validate_argument_node_type' => array(
-      'webform' => 0,
-      'panel' => 0,
-      'blog' => 0,
+      'image' => 0,
       'page' => 0,
       'story' => 0,
     ),
@@ -156,6 +160,13 @@ $handler->override_option('arguments', array(
     'validate_argument_type' => 'tid',
     'validate_argument_transform' => 0,
     'validate_user_restrict_roles' => 0,
+    'default_argument_php' => '',
+    'image_size' => array(
+      '_original' => '_original',
+      'thumbnail' => 'thumbnail',
+      'preview' => 'preview',
+    ),
+    'validate_argument_php' => '',
   ),
 ));
 $handler->override_option('filters', array(
@@ -169,7 +180,7 @@ $handler->override_option('filters', array(
       'operator' => 'vid_op',
       'identifier' => 'vid',
       'label' => 'Vocabulary',
-      'optional' => 1,
+      'optional' => 0,
       'single' => 1,
       'remember' => 1,
       'reduce' => 0,
@@ -178,6 +189,9 @@ $handler->override_option('filters', array(
     'table' => 'term_data',
     'field' => 'vid',
     'relationship' => 'none',
+    'override' => array(
+      'button' => 'Override',
+    ),
   ),
 ));
 $handler->override_option('access', array(
@@ -193,33 +207,45 @@ $handler->override_option('items_per_page', 50);
 $handler->override_option('use_pager', '1');
 $handler->override_option('style_plugin', 'bulk');
 $handler->override_option('style_options', array(
+  'grouping' => '',
+  'override' => 1,
+  'sticky' => 1,
+  'order' => 'asc',
+  'columns' => array(
+    'name_1' => 'name_1',
+    'name' => 'name',
+    'tid' => 'tid',
+  ),
+  'info' => array(
+    'name_1' => array(
+      'sortable' => 0,
+      'separator' => '',
+    ),
+    'name' => array(
+      'sortable' => 1,
+      'separator' => '',
+    ),
+    'tid' => array(
+      'sortable' => 0,
+      'separator' => '',
+    ),
+  ),
+  'default' => 'name',
   'execution_type' => '2',
   'display_type' => '0',
   'hide_select_all' => 0,
   'skip_confirmation' => 0,
   'display_result' => 1,
-  'merge_single_action' => 1,
+  'merge_single_action' => 0,
   'selected_operations' => array(
     'views_bulk_operations_delete_term_action' => 'views_bulk_operations_delete_term_action',
     'system_message_action' => 0,
+    'views_bulk_operations_action' => 0,
     'views_bulk_operations_script_action' => 0,
     'views_bulk_operations_argument_selector_action' => 0,
     'system_goto_action' => 0,
     'system_send_email_action' => 0,
   ),
 ));
-$handler = $view->new_display('page', 'Page', 'page_1');
+$handler = $view->new_display('system', 'System', 'system_1');
 $handler->override_option('path', 'admin/content/taxonomy/%');
-$handler->override_option('menu', array(
-  'type' => 'existing',
-  'title' => 'Taxonomy',
-  'description' => 'Manage tagging, categorization, and classification of your content.',
-  'weight' => 0,
-  'name' => 'navigation',
-));
-$handler->override_option('tab_options', array(
-  'type' => 'none',
-  'title' => '',
-  'description' => '',
-  'weight' => 0,
-));

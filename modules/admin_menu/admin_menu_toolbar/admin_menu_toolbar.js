@@ -1,6 +1,7 @@
-/* $Id: admin_menu_toolbar.js,v 1.1.2.2 2009/08/16 20:55:33 sun Exp $ */
+/* $Id: admin_menu_toolbar.js,v 1.1.2.3 2009/09/26 06:25:47 davereid Exp $ */
 (function($) {
 
+Drupal.admin = Drupal.admin || {};
 Drupal.admin.behaviors = Drupal.admin.behaviors || {};
 
 /**

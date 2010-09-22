@@ -1,5 +1,5 @@
 <?php
-// $Id: admin_content_node.inc,v 1.1.2.2 2009/08/16 21:00:20 sun Exp $
+// $Id: admin_content_node.inc,v 1.1.2.3 2010/03/11 01:10:55 sun Exp $
 
 $view = new view;
 $view->name = 'admin_content_node';
@@ -11,6 +11,19 @@ $view->is_cacheable = FALSE;
 $view->api_version = 2;
 $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
 $handler = $view->new_display('default', 'Defaults', 'default');
+$handler->override_option('relationships', array(
+  'uid' => array(
+    'label' => 'User',
+    'required' => 1,
+    'id' => 'uid',
+    'table' => 'node_revisions',
+    'field' => 'uid',
+    'override' => array(
+      'button' => 'Override',
+    ),
+    'relationship' => 'none',
+  ),
+));
 $handler->override_option('fields', array(
   'title' => array(
     'label' => 'Title',
@@ -119,6 +132,40 @@ $handler->override_option('fields', array(
     'field' => 'status',
     'relationship' => 'none',
   ),
+  'changed' => array(
+    'label' => 'Updated',
+    'alter' => array(
+      'alter_text' => 0,
+      'text' => '',
+      'make_link' => 0,
+      'path' => '',
+      'link_class' => '',
+      'alt' => '',
+      'prefix' => '',
+      'suffix' => '',
+      'target' => '',
+      'help' => '',
+      'trim' => 0,
+      'max_length' => '',
+      'word_boundary' => 1,
+      'ellipsis' => 1,
+      'strip_tags' => 0,
+      'html' => 0,
+    ),
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
+    'date_format' => 'small',
+    'custom_date_format' => '',
+    'exclude' => 0,
+    'id' => 'changed',
+    'table' => 'node',
+    'field' => 'changed',
+    'override' => array(
+      'button' => 'Override',
+    ),
+    'relationship' => 'none',
+  ),
   'edit_node' => array(
     'label' => '',
     'alter' => array(
@@ -130,6 +177,7 @@ $handler->override_option('fields', array(
       'alt' => '',
       'prefix' => '',
       'suffix' => '',
+      'target' => '',
       'help' => '',
       'trim' => 0,
       'max_length' => '',
@@ -138,11 +186,50 @@ $handler->override_option('fields', array(
       'strip_tags' => 0,
       'html' => 0,
     ),
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
     'text' => '',
     'exclude' => 0,
     'id' => 'edit_node',
     'table' => 'node',
     'field' => 'edit_node',
+    'relationship' => 'none',
+    'override' => array(
+      'button' => 'Override',
+    ),
+  ),
+  'delete_node' => array(
+    'label' => '',
+    'alter' => array(
+      'alter_text' => 0,
+      'text' => '',
+      'make_link' => 0,
+      'path' => '',
+      'link_class' => '',
+      'alt' => '',
+      'prefix' => '',
+      'suffix' => '',
+      'target' => '',
+      'help' => '',
+      'trim' => 0,
+      'max_length' => '',
+      'word_boundary' => 1,
+      'ellipsis' => 1,
+      'strip_tags' => 0,
+      'html' => 0,
+    ),
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
+    'text' => '',
+    'exclude' => 0,
+    'id' => 'delete_node',
+    'table' => 'node',
+    'field' => 'delete_node',
+    'override' => array(
+      'button' => 'Override',
+    ),
     'relationship' => 'none',
   ),
 ));
@@ -157,21 +244,26 @@ $handler->override_option('sorts', array(
   ),
 ));
 $handler->override_option('filters', array(
-  'status' => array(
-    'operator' => '=',
-    'value' => 'All',
+  'title' => array(
+    'operator' => 'contains',
+    'value' => '',
     'group' => '0',
     'exposed' => TRUE,
     'expose' => array(
-      'operator' => '',
-      'identifier' => 'status',
-      'label' => 'Published',
+      'use_operator' => 0,
+      'operator' => 'title_op',
+      'identifier' => 'title',
+      'label' => 'Title',
       'optional' => 1,
-      'remember' => 1,
+      'remember' => 0,
     ),
-    'id' => 'status',
+    'case' => 0,
+    'id' => 'title',
     'table' => 'node',
-    'field' => 'status',
+    'field' => 'title',
+    'override' => array(
+      'button' => 'Override',
+    ),
     'relationship' => 'none',
   ),
   'type' => array(
@@ -192,6 +284,45 @@ $handler->override_option('filters', array(
     'id' => 'type',
     'table' => 'node',
     'field' => 'type',
+    'relationship' => 'none',
+  ),
+  'uid' => array(
+    'operator' => 'in',
+    'value' => '',
+    'group' => '0',
+    'exposed' => TRUE,
+    'expose' => array(
+      'use_operator' => 0,
+      'operator' => 'uid_op',
+      'identifier' => 'name',
+      'label' => 'Author',
+      'optional' => 1,
+      'remember' => 0,
+      'reduce' => 0,
+    ),
+    'id' => 'uid',
+    'table' => 'users',
+    'field' => 'uid',
+    'override' => array(
+      'button' => 'Override',
+    ),
+    'relationship' => 'uid',
+  ),
+  'status' => array(
+    'operator' => '=',
+    'value' => 'All',
+    'group' => '0',
+    'exposed' => TRUE,
+    'expose' => array(
+      'operator' => '',
+      'identifier' => 'status',
+      'label' => 'Published',
+      'optional' => 1,
+      'remember' => 1,
+    ),
+    'id' => 'status',
+    'table' => 'node',
+    'field' => 'status',
     'relationship' => 'none',
   ),
   'vid' => array(
@@ -237,7 +368,9 @@ $handler->override_option('style_options', array(
     'type' => 'type',
     'name' => 'name',
     'status' => 'status',
+    'changed' => 'changed',
     'edit_node' => 'edit_node',
+    'delete_node' => 'delete_node',
   ),
   'info' => array(
     'title' => array(
@@ -256,17 +389,24 @@ $handler->override_option('style_options', array(
       'sortable' => 1,
       'separator' => '',
     ),
+    'changed' => array(
+      'sortable' => 1,
+      'separator' => '',
+    ),
     'edit_node' => array(
       'separator' => '',
     ),
+    'delete_node' => array(
+      'separator' => '',
+    ),
   ),
-  'default' => '-1',
+  'default' => 'changed',
   'execution_type' => '2',
   'display_type' => '0',
   'hide_select_all' => 0,
   'skip_confirmation' => 0,
   'display_result' => 1,
-  'merge_single_action' => 1,
+  'merge_single_action' => 0,
   'selected_operations' => array(
     'node_assign_owner_action' => 'node_assign_owner_action',
     'views_bulk_operations_delete_node_action' => 'views_bulk_operations_delete_node_action',
@@ -279,33 +419,28 @@ $handler->override_option('style_options', array(
     'node_unpromote_action' => 'node_unpromote_action',
     'node_unpublish_action' => 'node_unpublish_action',
     'node_unpublish_by_keyword_action' => 'node_unpublish_by_keyword_action',
-    'pathauto_node_operations_update' => 'pathauto_node_operations_update',
     'node_mass_update:a27b9efabcd054685a549378b174ad11' => 0,
     'system_message_action' => 0,
+    'views_bulk_operations_action' => 0,
     'views_bulk_operations_script_action' => 0,
     'node_mass_update:c4d3b28efb86fd703619a50b74d43794' => 0,
     'views_bulk_operations_argument_selector_action' => 0,
     'node_mass_update:14de7d028b4bffdf2b4a266562ca18ac' => 0,
     'node_mass_update:9c585624b9b3af0b4687d5f97f35e047' => 0,
+    'image_operations_rebuild' => 0,
     'system_goto_action' => 0,
     'node_mass_update:8ce21b08bb8e773d10018b484fe4815e' => 0,
     'node_save_action' => 0,
     'system_send_email_action' => 0,
     'node_mass_update:0ccad85c1ebe4c9ceada1aa64293b080' => 0,
   ),
+  'views_bulk_operations_fields_action' => array(
+    'php_code' => 0,
+    'display_fields' => array(
+      'field_whatever' => 'field_whatever',
+    ),
+    '_error_element_base' => 'style_options][views_bulk_operations_fields_action][',
+  ),
 ));
-$handler = $view->new_display('page', 'Page', 'page_1');
+$handler = $view->new_display('system', 'System', 'system_1');
 $handler->override_option('path', 'admin/content/node');
-$handler->override_option('menu', array(
-  'type' => 'existing',
-  'title' => 'Content',
-  'description' => 'View, edit, and delete your site\'s content.',
-  'weight' => '0',
-  'name' => 'navigation',
-));
-$handler->override_option('tab_options', array(
-  'type' => 'none',
-  'title' => '',
-  'description' => '',
-  'weight' => 0,
-));

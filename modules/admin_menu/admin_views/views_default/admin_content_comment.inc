@@ -1,5 +1,5 @@
 <?php
-// $Id: admin_content_comment.inc,v 1.1.2.2 2009/08/16 21:00:20 sun Exp $
+// $Id: admin_content_comment.inc,v 1.1.2.3 2010/03/11 01:10:55 sun Exp $
 
 $view = new view;
 $view->name = 'admin_content_comment';
@@ -11,6 +11,16 @@ $view->is_cacheable = FALSE;
 $view->api_version = 2;
 $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
 $handler = $view->new_display('default', 'Defaults', 'default');
+$handler->override_option('relationships', array(
+  'nid' => array(
+    'label' => 'Node',
+    'required' => 0,
+    'id' => 'nid',
+    'table' => 'comments',
+    'field' => 'nid',
+    'relationship' => 'none',
+  ),
+));
 $handler->override_option('fields', array(
   'subject' => array(
     'label' => 'Title',
@@ -64,7 +74,7 @@ $handler->override_option('fields', array(
     'field' => 'name',
     'relationship' => 'none',
   ),
-  'node_link' => array(
+  'title' => array(
     'label' => 'Posted in',
     'alter' => array(
       'alter_text' => 0,
@@ -75,20 +85,24 @@ $handler->override_option('fields', array(
       'alt' => '',
       'prefix' => '',
       'suffix' => '',
+      'target' => '',
       'help' => '',
-      'trim' => 0,
-      'max_length' => '',
+      'trim' => 1,
+      'max_length' => '16',
       'word_boundary' => 1,
       'ellipsis' => 1,
       'strip_tags' => 0,
       'html' => 0,
     ),
-    'teaser' => 0,
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
+    'link_to_node' => 1,
     'exclude' => 0,
-    'id' => 'node_link',
-    'table' => 'comments',
-    'field' => 'node_link',
-    'relationship' => 'none',
+    'id' => 'title',
+    'table' => 'node',
+    'field' => 'title',
+    'relationship' => 'nid',
   ),
   'timestamp' => array(
     'label' => 'Posted',
@@ -128,6 +142,7 @@ $handler->override_option('fields', array(
       'alt' => '',
       'prefix' => '',
       'suffix' => '',
+      'target' => '',
       'help' => '',
       'trim' => 0,
       'max_length' => '',
@@ -136,11 +151,50 @@ $handler->override_option('fields', array(
       'strip_tags' => 0,
       'html' => 0,
     ),
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
     'text' => '',
     'exclude' => 0,
     'id' => 'edit_comment',
     'table' => 'comments',
     'field' => 'edit_comment',
+    'relationship' => 'none',
+    'override' => array(
+      'button' => 'Override',
+    ),
+  ),
+  'delete_comment' => array(
+    'label' => '',
+    'alter' => array(
+      'alter_text' => 0,
+      'text' => '',
+      'make_link' => 0,
+      'path' => '',
+      'link_class' => '',
+      'alt' => '',
+      'prefix' => '',
+      'suffix' => '',
+      'target' => '',
+      'help' => '',
+      'trim' => 0,
+      'max_length' => '',
+      'word_boundary' => 1,
+      'ellipsis' => 1,
+      'strip_tags' => 0,
+      'html' => 0,
+    ),
+    'empty' => '',
+    'hide_empty' => 0,
+    'empty_zero' => 0,
+    'text' => '',
+    'exclude' => 0,
+    'id' => 'delete_comment',
+    'table' => 'comments',
+    'field' => 'delete_comment',
+    'override' => array(
+      'button' => 'Override',
+    ),
     'relationship' => 'none',
   ),
 ));
@@ -155,6 +209,28 @@ $handler->override_option('sorts', array(
   ),
 ));
 $handler->override_option('filters', array(
+  'subject' => array(
+    'operator' => 'contains',
+    'value' => '',
+    'group' => '0',
+    'exposed' => TRUE,
+    'expose' => array(
+      'use_operator' => 0,
+      'operator' => 'subject_op',
+      'identifier' => 'subject',
+      'label' => 'Title',
+      'optional' => 1,
+      'remember' => 0,
+    ),
+    'case' => 0,
+    'id' => 'subject',
+    'table' => 'comments',
+    'field' => 'subject',
+    'override' => array(
+      'button' => 'Override',
+    ),
+    'relationship' => 'none',
+  ),
   'name' => array(
     'operator' => 'contains',
     'value' => '',
@@ -174,6 +250,28 @@ $handler->override_option('filters', array(
     'field' => 'name',
     'relationship' => 'none',
   ),
+  'title' => array(
+    'operator' => 'contains',
+    'value' => '',
+    'group' => '0',
+    'exposed' => TRUE,
+    'expose' => array(
+      'use_operator' => 0,
+      'operator' => 'title_op',
+      'identifier' => 'title',
+      'label' => 'Posted in',
+      'optional' => 1,
+      'remember' => 0,
+    ),
+    'case' => 0,
+    'id' => 'title',
+    'table' => 'node',
+    'field' => 'title',
+    'relationship' => 'nid',
+    'override' => array(
+      'button' => 'Override',
+    ),
+  ),
   'status' => array(
     'operator' => '=',
     'value' => 'All',
@@ -182,7 +280,7 @@ $handler->override_option('filters', array(
     'expose' => array(
       'operator' => '',
       'identifier' => 'status',
-      'label' => 'Awaiting approval?',
+      'label' => 'Published',
       'optional' => 1,
       'remember' => 1,
     ),
@@ -190,6 +288,9 @@ $handler->override_option('filters', array(
     'table' => 'comments',
     'field' => 'status',
     'relationship' => 'none',
+    'override' => array(
+      'button' => 'Override',
+    ),
   ),
 ));
 $handler->override_option('access', array(
@@ -205,35 +306,60 @@ $handler->override_option('items_per_page', 50);
 $handler->override_option('use_pager', '1');
 $handler->override_option('style_plugin', 'bulk');
 $handler->override_option('style_options', array(
+  'grouping' => '',
+  'override' => 1,
+  'sticky' => 1,
+  'order' => 'desc',
+  'columns' => array(
+    'subject' => 'subject',
+    'name' => 'name',
+    'title' => 'title',
+    'timestamp' => 'timestamp',
+    'edit_comment' => 'edit_comment',
+    'delete_comment' => 'delete_comment',
+  ),
+  'info' => array(
+    'subject' => array(
+      'sortable' => 1,
+      'separator' => '',
+    ),
+    'name' => array(
+      'sortable' => 1,
+      'separator' => '',
+    ),
+    'title' => array(
+      'sortable' => 1,
+      'separator' => '',
+    ),
+    'timestamp' => array(
+      'sortable' => 1,
+      'separator' => '',
+    ),
+    'edit_comment' => array(
+      'separator' => '',
+    ),
+    'delete_comment' => array(
+      'separator' => '',
+    ),
+  ),
+  'default' => 'timestamp',
   'execution_type' => '2',
   'display_type' => '0',
   'hide_select_all' => 0,
   'skip_confirmation' => 0,
   'display_result' => 1,
-  'merge_single_action' => 1,
+  'merge_single_action' => 0,
   'selected_operations' => array(
     'views_bulk_operations_delete_comment_action' => 'views_bulk_operations_delete_comment_action',
     'system_send_email_action' => 'system_send_email_action',
     'comment_unpublish_action' => 'comment_unpublish_action',
     'comment_unpublish_by_keyword_action' => 'comment_unpublish_by_keyword_action',
     'system_message_action' => 0,
+    'views_bulk_operations_action' => 0,
     'views_bulk_operations_script_action' => 0,
     'views_bulk_operations_argument_selector_action' => 0,
     'system_goto_action' => 0,
   ),
 ));
-$handler = $view->new_display('page', 'Page', 'page_1');
+$handler = $view->new_display('system', 'System', 'system_1');
 $handler->override_option('path', 'admin/content/comment');
-$handler->override_option('menu', array(
-  'type' => 'existing',
-  'title' => 'Comments',
-  'description' => 'List and edit site comments and the comment moderation queue.',
-  'weight' => 0,
-  'name' => 'navigation',
-));
-$handler->override_option('tab_options', array(
-  'type' => 'none',
-  'title' => '',
-  'description' => '',
-  'weight' => 0,
-));
