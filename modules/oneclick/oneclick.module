@@ -87,7 +87,7 @@ function oneclick_menu() {
 }
 
 function oneclick_ping() {
-  print ip_address();
+  print 'me';
   exit();
 }
 
