@@ -437,6 +437,7 @@ function oneclick_sitecon_client_allow_con($server) {
 }
 
 function oneclick_get_init_from_client($domain) {
+  watchdog('oneclick', 'GET INIT DATA FROM : '. $domain);
   $data = array();
   $user = db_query("SELECT u.name, u.mail, u.pass, u.data, n.nid FROM {users} u, {node} n, {hosting_client_user} hcu, {hosting_site} hs WHERE hcu.user = u.uid AND hcu.client = hs.client AND hs.nid = n.nid AND u.uid <> 1 AND n.title = '%s'", array($domain));
   $user = db_fetch_object($user);
